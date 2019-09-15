@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Decypher</string>
+    <string name="enter_solution">Enter Solution</string>
+    <string name="decypher">Decypher</string>
+    <string name="isch_ppis">Isch Öppis?</string>
+    <string name="imageview">ImageView</string>
+</resources>
