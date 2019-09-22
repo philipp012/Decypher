@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        return Bitmap.createBitmap(data, width, height, Bitmap.Config.ARGB_8888);
+        return bitmap;
     }
 
     @Override
