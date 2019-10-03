@@ -95,24 +95,48 @@ public class MainActivity extends AppCompatActivity {
         int width = bitmap.getWidth();
         int height = bitmap.getHeight();
         int[] data = new int[width * height];
+
         bitmap.getPixels(data, 0, width, 0, 0, width, height);
 
-        // Hier können die Pixel im data-array bearbeitet und
-        // anschliessend damit ein neues Bitmap erstellt werden
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < height; j++) {
+        int[] rgbteil = new int[3];
+
+        int rot = Color.RED;
+
+        //get alpha
+        int rota = (rot >> 24) & 0xff;
+
+        //get red
+        int rotr = (rot >> 16) & 0xff;
+
+        //get green
+        int rotg = (rot >> 8) & 0xff;
+
+        //get blue
+        int rotb = rot & 0xff;
 
 
+        for (int i = 0; i < data.length; i++) {
+            //get alpha
+            int a = (data[i] >> 24) & 0xff;
 
-                int pixel = bitmap.getPixel(i, j);
-                int green = Color.green(pixel);
-                int blue = Color.blue(pixel);
+            //get red
+            int r = (data[i] >> 16) & 0xff;
 
-                bitmap.setPixel(i, j, Color.argb(Color.alpha(pixel), 255, green, blue));
-            }
+            //get green
+            int g = (data[i] >> 8) & 0xff;
+
+            //get blue
+            int b = data[i] & 0xff;
+
+            a *= rota;
+            r *= rotr;
+            g *= rotg;
+            b *= rotb;
+
+            data[i] = (a << 24) | (r << 16) | (g << 8) | b;
         }
 
-        return bitmap;
+        return Bitmap.createBitmap(data, width, height, Bitmap.Config.ARGB_8888);
     }
 
     @Override
