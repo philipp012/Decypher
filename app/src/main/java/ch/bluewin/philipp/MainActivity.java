@@ -24,7 +24,6 @@ import android.widget.Toast;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -208,25 +207,43 @@ public class MainActivity extends AppCompatActivity {
 
         bitmap.getPixels(data, 0, width, 0, 0, width, height);
 
-        ArrayList<Integer> pixelsAR = new ArrayList();
-        for (int pixel : data) {
-            pixel = Color.red(pixel);
-            pixelsAR.add(pixel);
+        int red = Color.RED;
+
+        //get alpha
+        int redA = (red>>24) & 0xff;
+
+        //get red
+        int redR = (red>>16) & 0xff;
+
+        //get green
+        int redG = (red>>8) & 0xff;
+
+        //get blue
+        int redB = red & 0xff;
+
+
+        for (int i=0; i<data.length; i++){
+            //get alpha
+            int a = (data[i]>>24) & 0xff;
+
+            //get red
+            int r = (data[i]>>16) & 0xff;
+
+            //get green
+            int g = (data[i]>>8) & 0xff;
+
+            //get blue
+            int b = data[i] & 0xff;
+
+            a *= redA;
+            r *= redR;
+            g *= redG;
+            b *= redB;
+
+            data[i] = (a<<24) | (r<<16) | (g<<8) | b;
         }
 
-        int[] pixels = convertIntegers(pixelsAR);
-
-        bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
-
-        return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888);
-    }
-
-    public int[] convertIntegers(List<Integer> integers) {
-        int[] ret = new int[integers.size()];
-        for (int i = 0; i < ret.length; i++) {
-            ret[i] = integers.get(i).intValue();
-        }
-        return ret;
+        return Bitmap.createBitmap(data, width, height, Bitmap.Config.ARGB_8888);
     }
 
     // Logging
