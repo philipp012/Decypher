@@ -162,21 +162,6 @@ public class MainActivity extends AppCompatActivity {
         return contentUri;
     }
 
-    private Bitmap setPic(Bitmap bitmap) {
-        //Reduce size in memory
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inSampleSize = calculateInSampleSize(options, 500,500);
-        options.inJustDecodeBounds = true;
-        Bitmap smallBitmap = BitmapFactory.decodeFile(mCurrentPhotoPath, options);
-
-        //Reduce size in disk
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, bos);
-        byte[] bitmapdata = bos.toByteArray();
-
-        return smallBitmap;
-    }
-
     private Bitmap setPic() {
         // Get the dimensions of the View
         int targetW = imageView.getWidth();
@@ -217,7 +202,6 @@ public class MainActivity extends AppCompatActivity {
 
         return inSampleSize;
     }
-
 
     private Bitmap applyFilter(Bitmap bitmap) {
         int width = bitmap.getWidth();
