@@ -11,8 +11,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
-import android.support.annotation.Nullable;
-import android.support.v4.content.FileProvider;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -25,6 +23,7 @@ import android.widget.Toast;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -38,8 +37,7 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
     private Context context = this;
     private ImageView imageView;
-    String currentPhotoPath;
-    static final int REQUEST_TAKE_PHOTO = 1;
+    String mCurrentPhotoPath;
     private static final int REQUEST_IMAGE_CAPTURE = 101;
 
     @Override
@@ -82,50 +80,43 @@ public class MainActivity extends AppCompatActivity {
         decypherBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-               dispatchTakePictureIntent();
+                dispatchTakePictureIntent();
             }
         });
     }
 
-    private void dispatchTakePictureIntent() {
-        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        // Ensure that there's a camera activity to handle the intent
-        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-            // Create the File where the photo should go
-            File photoFile = null;
-            try {
-                photoFile = createImageFile();
-            } catch (IOException ex) {
-                // Error occurred while creating the File
-            }
-            // Continue only if the File was successfully created
-            if (photoFile != null) {
-                Uri photoURI = FileProvider.getUriForFile(this,
-                        "com.example.android.fileprovider",
-                        photoFile);
-                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
-            }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+            //Bundle extras = data.getExtras();
+            //Bitmap imageBitmap = (Bitmap) extras.get("data");
+            //imageView.setImageBitmap(imageBitmap);
+            Uri uri = galleryAddPic();
+            Bitmap bitmap = readImageFile(uri);
+            assert bitmap != null;
+            Bitmap scaledBitmap = setPic();
+            Bitmap newBitmap = applyFilter(scaledBitmap);
+            imageView.setImageBitmap(newBitmap);
         }
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            /*assert data != null;
-            Uri contactUri = data.getData();
-            assert contactUri != null;
-            Bitmap bitmap = readImageFile(contactUri);
-            assert bitmap != null;
-            applyFilter(bitmap);*/
-
-            Bundle extras = data.getExtras();
-            Bitmap imageBitmap = (Bitmap) extras.get("data");
-            imageBitmap = applyFilter(imageBitmap);
-
-            imageView.setImageBitmap(imageBitmap);
+    private Bitmap readImageFile(Uri imageUri) {
+        File file = new File(imageUri.getPath());
+        InputStream is = null;
+        try {
+            is = new FileInputStream(file);
+            return BitmapFactory.decodeStream(is);
+        } catch (FileNotFoundException e) {
+            Log.e("DECODER", "Could not find image file", e);
+            return null;
+        } finally {
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException ignored) {
+                }
+            }
         }
-
     }
 
     private File createImageFile() throws IOException {
@@ -140,29 +131,93 @@ public class MainActivity extends AppCompatActivity {
         );
 
         // Save a file: path for use with ACTION_VIEW intents
-        currentPhotoPath = image.getAbsolutePath();
+        mCurrentPhotoPath = image.getAbsolutePath();
         return image;
     }
 
-    private Bitmap readImageFile(Uri imageUri) {
-        File file = new File(imageUri.getPath());
-        InputStream is = null;
-        try {
-            is = new FileInputStream(file);
-            Bitmap bitmap = BitmapFactory.decodeStream(is);
-            return bitmap;
-        } catch (FileNotFoundException e) {
-            Log.e("DECODER", "Could not find image file", e);
-            return null;
-        } finally {
-            if (is != null) {
-                try {
-                    is.close();
-                } catch (IOException ignored) {
-                }
+
+    private void dispatchTakePictureIntent() {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            File photoFile = null;
+            try {
+                photoFile = createImageFile();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+            if (photoFile != null) {
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photoFile));
+                startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
             }
         }
     }
+
+    private Uri galleryAddPic() {
+        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        File f = new File(mCurrentPhotoPath);
+        Uri contentUri = Uri.fromFile(f);
+        mediaScanIntent.setData(contentUri);
+        this.sendBroadcast(mediaScanIntent);
+
+        return contentUri;
+    }
+
+    private Bitmap setPic(Bitmap bitmap) {
+        //Reduce size in memory
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inSampleSize = calculateInSampleSize(options, 500,500);
+        options.inJustDecodeBounds = true;
+        Bitmap smallBitmap = BitmapFactory.decodeFile(mCurrentPhotoPath, options);
+
+        //Reduce size in disk
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, bos);
+        byte[] bitmapdata = bos.toByteArray();
+
+        return smallBitmap;
+    }
+
+    private Bitmap setPic() {
+        // Get the dimensions of the View
+        int targetW = imageView.getWidth();
+        int targetH = imageView.getHeight();
+
+        // Get the dimensions of the bitmap
+        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+        bmOptions.inJustDecodeBounds = true;
+
+        // Decode the image file into a Bitmap sized to fill the View
+        bmOptions.inJustDecodeBounds = false;
+        bmOptions.inSampleSize = calculateInSampleSize(bmOptions, targetW, targetH);
+        bmOptions.inPurgeable = true;
+
+        return BitmapFactory.decodeFile(mCurrentPhotoPath, bmOptions);
+    }
+
+
+    public static int calculateInSampleSize(
+            BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        // Raw height and width of image
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+
+            // Calculate the largest inSampleSize value that is a power of 2 and keeps both
+            // height and width larger than the requested height and width.
+            while ((halfHeight / inSampleSize) >= reqHeight
+                    && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+
+        return inSampleSize;
+    }
+
 
     private Bitmap applyFilter(Bitmap bitmap) {
         int width = bitmap.getWidth();
@@ -171,19 +226,25 @@ public class MainActivity extends AppCompatActivity {
 
         bitmap.getPixels(data, 0, width, 0, 0, width, height);
 
-        // Hier können die Pixel im data-array bearbeitet und
-        // anschliessend damit ein neues Bitmap erstellt werden
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < height; j++) {
-                int pixel = bitmap.getPixel(i, j);
-                int green = Color.green(pixel);
-                int blue = Color.blue(pixel);
-
-                bitmap.setPixel(i, j, Color.argb(Color.alpha(pixel), 255, green, blue));
-            }
+        ArrayList<Integer> pixelsAR = new ArrayList();
+        for (int pixel : data) {
+            pixel = Color.red(pixel);
+            pixelsAR.add(pixel);
         }
 
-        return bitmap;
+        int[] pixels = convertIntegers(pixelsAR);
+
+        bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
+
+        return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888);
+    }
+
+    public int[] convertIntegers(List<Integer> integers) {
+        int[] ret = new int[integers.size()];
+        for (int i = 0; i < ret.length; i++) {
+            ret[i] = integers.get(i).intValue();
+        }
+        return ret;
     }
 
     // Logging
