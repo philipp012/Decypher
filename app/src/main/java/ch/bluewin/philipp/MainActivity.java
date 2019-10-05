@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -38,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
     private Context context = this;
     private ImageView imageView;
     String mCurrentPhotoPath;
-    private static final int REQUEST_IMAGE_CAPTURE = 101;
+    static final int REQUEST_TAKE_PHOTO = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,16 +88,12 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            //Bundle extras = data.getExtras();
-            //Bitmap imageBitmap = (Bitmap) extras.get("data");
-            //imageView.setImageBitmap(imageBitmap);
-            Uri uri = galleryAddPic();
-            Bitmap bitmap = readImageFile(uri);
-            assert bitmap != null;
-            Bitmap scaledBitmap = setPic();
-            Bitmap newBitmap = applyFilter(scaledBitmap);
-            imageView.setImageBitmap(newBitmap);
+        if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
+            Uri imageUri = Uri.parse(mCurrentPhotoPath);
+            Bitmap image = readImageFile(imageUri);
+            Bitmap filteredBitmap = applyFilter(image);
+
+            imageView.setImageBitmap(filteredBitmap);
         }
     }
 
@@ -138,18 +135,19 @@ public class MainActivity extends AppCompatActivity {
 
     private void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-            File photoFile = null;
-            try {
-                photoFile = createImageFile();
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-            if (photoFile != null) {
-                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photoFile));
-                startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
-            }
+        File photoFile = null;
+        try {
+            photoFile = createImageFile();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+
+        Uri photoURI = FileProvider.getUriForFile(this,
+                BuildConfig.APPLICATION_ID + ".provider",
+                photoFile);
+
+        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+        startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
     }
 
     private Uri galleryAddPic() {
