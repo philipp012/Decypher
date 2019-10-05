@@ -30,9 +30,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private Context context = this;
@@ -175,7 +173,6 @@ public class MainActivity extends AppCompatActivity {
 
         return BitmapFactory.decodeFile(mCurrentPhotoPath, bmOptions);
     }
-
 
     public static int calculateInSampleSize(
             BitmapFactory.Options options, int reqWidth, int reqHeight) {
