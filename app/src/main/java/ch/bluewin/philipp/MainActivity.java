@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -176,6 +175,7 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
+        assert photoFile != null;
         Uri photoURI = FileProvider.getUriForFile(this,
                 BuildConfig.APPLICATION_ID + ".provider",
                 photoFile);
