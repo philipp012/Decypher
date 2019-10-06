@@ -6,16 +6,28 @@
     android:background="#000000">
 
     <Button
-        android:id="@+id/pictureButton"
-        android:layout_width="fill_parent"
-        android:layout_height="100dp"
+        android:id="@+id/takePictureButton"
+        android:layout_width="205dp"
+        android:layout_height="92dp"
         android:layout_alignParentTop="true"
-        android:layout_marginTop="-8dp"
+        android:layout_marginTop="0dp"
         android:background="#ff6633"
         android:text="@string/decypher"
         android:textColor="#ffffff" />
 
-<ImageView
+    <Button
+        android:id="@+id/choosePictureButton"
+        android:layout_width="206dp"
+        android:layout_height="92dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginTop="0dp"
+        android:background="#ff6633"
+        android:text="@string/gallery"
+        android:textColor="#ffffff" />
+
+    <ImageView
     android:id="@+id/imageView"
     android:layout_width="match_parent"
     android:layout_height="match_parent"

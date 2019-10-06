@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -36,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
     private Context context = this;
     private ImageView imageView;
     String mCurrentPhotoPath;
+    public static final int PICK_IMAGE = 10;
     static final int REQUEST_TAKE_PHOTO = 1;
 
     @Override
@@ -74,24 +76,48 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // get picture button
-        Button decypherBtn = findViewById(R.id.pictureButton);
+        Button decypherBtn = findViewById(R.id.takePictureButton);
         decypherBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 dispatchTakePictureIntent();
             }
         });
+
+        // get gallery button
+        Button galleryBtn = findViewById(R.id.choosePictureButton);
+        galleryBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dispatchChoosePictureIntent();
+            }
+        });
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
-            Uri imageUri = Uri.parse(mCurrentPhotoPath);
-            Bitmap image = readImageFile(imageUri);
-            Bitmap filteredBitmap = applyFilter(image);
+        Uri imageUri;
+        Bitmap bitmap = null;
 
-            imageView.setImageBitmap(filteredBitmap);
+        //Picture from camera
+        if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
+            imageUri = Uri.parse(mCurrentPhotoPath);
+            bitmap = readImageFile(imageUri);
         }
+        //Picture from gallery
+        if (requestCode == PICK_IMAGE && resultCode == RESULT_OK) {
+            imageUri = data.getData();
+            bitmap = null;
+            try {
+                bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        assert bitmap != null;
+        Bitmap filteredBitmap = applyFilter(bitmap);
+        imageView.setImageBitmap(filteredBitmap);
     }
 
     private Bitmap readImageFile(Uri imageUri) {
@@ -129,6 +155,17 @@ public class MainActivity extends AppCompatActivity {
         return image;
     }
 
+    private void dispatchChoosePictureIntent() {
+        //Create an Intent with action as ACTION_PICK
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        // Sets the type as image/*. This ensures only components of type image are selected
+        intent.setType("image/*");
+        //We pass an extra array with the accepted mime types. This will ensure only components with these MIME types as targeted.
+        String[] mimeTypes = {"image/jpeg", "image/png"};
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
+        // Launching the Intent
+        startActivityForResult(intent, PICK_IMAGE);
+    }
 
     private void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -204,42 +241,14 @@ public class MainActivity extends AppCompatActivity {
 
         bitmap.getPixels(data, 0, width, 0, 0, width, height);
 
-        int red = Color.RED;
-
-        //get alpha
-        int redA = (red>>24) & 0xff;
-
-        //get red
-        int redR = (red>>16) & 0xff;
-
-        //get green
-        int redG = (red>>8) & 0xff;
-
-        //get blue
-        int redB = red & 0xff;
-
-
-        for (int i=0; i<data.length; i++){
-            //get alpha
-            int a = (data[i]>>24) & 0xff;
-
-            //get red
-            int r = (data[i]>>16) & 0xff;
-
-            //get green
-            int g = (data[i]>>8) & 0xff;
-
-            //get blue
-            int b = data[i] & 0xff;
-
-            a *= redA;
-            r *= redR;
-            g *= redG;
-            b *= redB;
-
-            data[i] = (a<<24) | (r<<16) | (g<<8) | b;
+        for (int index = 0; index < width * height; index++) {
+            int pixel = data[index];
+            int red = Color.red(pixel);
+            int green = 0;
+            int blue = 0;
+            int alpha = 255;
+            data[index] = (alpha << 24) | (red << 16) | (green << 8) | blue;
         }
-
         return Bitmap.createBitmap(data, width, height, Bitmap.Config.ARGB_8888);
     }
 
