@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
     private Context context = this;
     private ImageView imageView;
     String mCurrentPhotoPath;
-    public static final int PICK_IMAGE = 10;
+    static final int PICK_IMAGE = 10;
     static final int REQUEST_TAKE_PHOTO = 1;
 
     @Override
@@ -95,20 +95,20 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Uri imageUri;
         Bitmap bitmap = null;
 
         //Picture from camera
         if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
+            Uri imageUri;
+
             imageUri = Uri.parse(mCurrentPhotoPath);
             bitmap = readImageFile(imageUri);
         }
         //Picture from gallery
         if (requestCode == PICK_IMAGE && resultCode == RESULT_OK) {
-            imageUri = data.getData();
-            bitmap = null;
+            Uri uri = data.getData();
             try {
-                bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri);
+                bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -155,15 +155,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void dispatchChoosePictureIntent() {
-        //Create an Intent with action as ACTION_PICK
-        Intent intent = new Intent(Intent.ACTION_PICK);
-        // Sets the type as image/*. This ensures only components of type image are selected
-        intent.setType("image/*");
-        //We pass an extra array with the accepted mime types. This will ensure only components with these MIME types as targeted.
-        String[] mimeTypes = {"image/jpeg", "image/png"};
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
-        // Launching the Intent
-        startActivityForResult(intent, PICK_IMAGE);
+        Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
+        photoPickerIntent.setType("image/*");
+        startActivityForResult(photoPickerIntent, PICK_IMAGE);
     }
 
     private void dispatchTakePictureIntent() {
